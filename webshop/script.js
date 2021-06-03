@@ -1,13 +1,14 @@
-class GoodsItem {
-  constructor(title = "Product name", description = "Product description", price = "Price", picture = "/img/no_photo.jpeg") {
-    this.title = title;
-    this.description = description;
-    this.price = price;
-    this.picture = picture;
-  }
+const API_URL =
+  "https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses";
 
+class GoodsItem {
+  constructor(title, price, id) {
+    this.title = title;
+    this.price = price;
+    this.id = id;
+  }
   render() {
-    return `<div class="goods-item"><h3>${this.title}</h3><img src="${this.picture}"><p>${this.description}</p><p class="price"><b>${this.price}</b></p></div>`
+    return `<div class="goods-item" itemId=${this.id}><h3>${this.title}</h3><p>${this.price}</p><button onclick="cart.addToCart(${this.id})" class="add-to-cart" id="${this.id}">Добавить в корзину</button></div>`;
   }
 }
 
@@ -16,41 +17,27 @@ class GoodsList {
     this.goods = [];
   }
 
-  fetchGoods() {
-    this.goods = [{
-        title: 'T-Shirt',
-        description: "Short sleeved chain brand printed t-shirt",
-        price: 150,
-        picture: "/img/shirt.webp"
-      },
-      {
-        title: 'Socks',
-        description: "Workshop exclusive socks with print",
-        price: 50,
-        picture: "/img/socks.webp"
-      },
-      {
-        title: 'Jacket',
-        description: "Long sleeved blazer with unique tying design",
-        price: 350,
-        picture: "/img/jacket.webp"
-      },
-      {
-        title: 'Sneakers',
-        description: "Vulcanized hybrid sneakers ultra light",
-        price: 250,
-        picture: "/img/shoes.webp"
-      },
-    ]
+  async fetchGoods() {
+    const responce = await fetch(`${API_URL}/catalogData.json`);
+    if (responce.ok) {
+      const catalogItems = await responce.json();
+      this.goods = catalogItems;
+    } else {
+      alert("Ошибка при соединении с сервером");
+    }
   }
 
   render() {
-    let listAcc = '';
-    this.goods.forEach(good => {
-      const goodItem = new GoodsItem(good.title, good.description, good.price, good.picture);
-      listAcc += goodItem.render();
+    let listHtml = "";
+    this.goods.forEach((good) => {
+      const goodItem = new GoodsItem(
+        good.product_name,
+        good.price,
+        good.id_product
+      );
+      listHtml += goodItem.render();
     });
-    document.querySelector('.goods-list').innerHTML = listAcc;
+    document.querySelector(".goods-list").innerHTML = listHtml;
   }
 
   countSum() {
@@ -60,23 +47,51 @@ class GoodsList {
       sum += good.price;
     });
 
-    let span = document.createElement('span');
-
-    span.innerHTML = `Сумма: ${sum} руб.`;
-
-    document.querySelector('main').appendChild(span);
+    // let span = document.createElement('span');
+    // span.innerHTML = `Сумма: ${sum} руб.`;
+    // document.querySelector('main').appendChild(span);
 
     return sum;
   }
 }
 
-class Cart {}
+class Cart {
+  constructor() {
+    this.cartList = [];
+  }
 
-class ItemCart {}
+  addToCart(id) {
 
-const init = () => {
-  const list = new GoodsList();
-  list.fetchGoods();
+    list.goods.forEach(good => {
+      if (good.id_product == id) {
+        this.cartList.push(good)
+        document.querySelector('.cart-button').innerHTML = `В корзине: ${cart.goodsCount()}`;
+      }
+    })
+    this.render()
+  }
+
+  removeFromCart(id) {}
+
+  render() {
+
+    let cartList = document.getElementById('cart-list');
+    cartList.innerHTML = '';
+    this.cartList.forEach(item => {
+      cartList.innerHTML += `<div class="cart-item"><p>${item.product_name}</p><button onclick="cart.removeFromCart(${item.id_product})" class="cart-item-remove">X</button></div>`
+    })
+  }
+
+  goodsCount() {
+    return this.cartList.length
+  }
+}
+
+const cart = new Cart(); // почему если занести это в init, то этих классов не видно?
+const list = new GoodsList();
+
+const init = async () => {
+  await list.fetchGoods();
   list.render();
   list.countSum();
 }
