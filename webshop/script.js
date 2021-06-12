@@ -1,99 +1,160 @@
 const API_URL =
   "https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses";
 
-class GoodsItem {
-  constructor(title, price, id) {
-    this.title = title;
-    this.price = price;
-    this.id = id;
-  }
-  render() {
-    return `<div class="goods-item" itemId=${this.id}><h3>${this.title}</h3><p>${this.price}</p><button onclick="cart.addToCart(${this.id})" class="add-to-cart" id="${this.id}">Добавить в корзину</button></div>`;
-  }
-}
+Vue.component('goods-list', {
+  props: ['goods'],
+  template: `
+      <div class="goods-list">
+        <goods-item v-for="goodEntity in goods" :goodProp="goodEntity"></goods-item>
+      </div>
+    `
+});
 
-class GoodsList {
-  constructor() {
-    this.goods = [];
-  }
+Vue.component('goods-item', {
+  props: ['goodProp'],
+  template: `
+      <div class="goods-item" :id="goodProp.id_product">
+        <h3 class="goods-item-name">
+          {{goodProp.product_name}}
+        </h3>
+        <img :src="goodProp.picture">
+        <p class="goods-item-price">
+          {{goodProp.price}}
+        </p>
+        <button 
+          @click="addToBasket(goodProp.id_product)" 
+          class="add-to-cart" 
+          :id="goodProp.id_product">
+        Добавить в корзину
+        </button>
+      </div>
+    `,
 
-  async fetchGoods() {
-    const responce = await fetch(`${API_URL}/catalogData.json`);
-    if (responce.ok) {
-      const catalogItems = await responce.json();
-      this.goods = catalogItems;
-    } else {
-      alert("Ошибка при соединении с сервером");
+  methods: {
+    addToBasket(id) {
+      const items = app.filteredGoods;
+      items.forEach((item) => {
+        if (item.id_product == id) {
+          const addedItem = {
+            id_product: item.id_product,
+            product_name: item.product_name,
+            price: item.price,
+            picture: item.picture
+          }
+          app.basketItems.push(addedItem);
+          app.basketSum += addedItem.price;
+        }
+      });
     }
+  },
+});
+
+Vue.component('search', {
+  data: function () {
+    return {
+      searchLine: ''
+    }
+  },
+
+  template: `
+      <div class="search-wrapper">
+        <input 
+          @keydown.enter="searchGoods" 
+          type="text" 
+          v-model="searchLine" 
+          placeholder="Введите строку поиска"/>
+        <button 
+          class="search-button"
+          type="button"
+          @click="searchGoods">
+          Искать
+        </button>
+      </div>
+    `,
+
+  methods: {
+    searchGoods() {
+      const regExp = new RegExp(this.searchLine, 'i')
+      app.filteredGoods = app.goods.filter(good => regExp.test(good.product_name))
+    },
+  },
+});
+
+Vue.component('basket-list', {
+  props: ['basketItems'],
+  template: `
+      <div class="basket-list">
+        <basket-item 
+        v-bind:key="index"
+        v-bind:basket-item-id="item.id_product"
+        v-for="(item,index) in basketItems"
+        :item="item"
+        :index="index">
+        </basket-item>
+      </div>
+    `,
+});
+
+Vue.component('basket-item', {
+  props: ['item', 'index'],
+  template: `
+      <div class="basket-item">
+        <h3 
+          class="basket-item__title">
+        {{item.product_name}}
+        </h3>
+        <img 
+          :src="item.picture">
+        <p 
+          class="basket-item__price">
+        {{item.price}}
+        </p>
+        <button 
+          @click="removeFromCart(index)" 
+          class="remove-from-cart">
+          Удалить из корзины
+        </button>
+      </div>
+  `,
+
+  methods: {
+    removeFromCart(index) {
+      app.basketItems.splice(index, 1);
+      app.basketSum -= app.basketItems[index].price;
+    },
   }
 
-  render() {
-    let listHtml = "";
-    this.goods.forEach((good) => {
-      const goodItem = new GoodsItem(
-        good.product_name,
-        good.price,
-        good.id_product
-      );
-      listHtml += goodItem.render();
-    });
-    document.querySelector(".goods-list").innerHTML = listHtml;
-  }
+});
 
-  countSum() {
-    let sum = 0;
 
-    this.goods.forEach(good => {
-      sum += good.price;
-    });
+const app = new Vue({
+  el: "#app",
+  data: {
+    goods: [],
+    filteredGoods: [],
+    basketItems: [],
+    basketSum: 0,
+    searchLine: ''
+  },
 
-    // let span = document.createElement('span');
-    // span.innerHTML = `Сумма: ${sum} руб.`;
-    // document.querySelector('main').appendChild(span);
-
-    return sum;
-  }
-}
-
-class Cart {
-  constructor() {
-    this.cartList = [];
-  }
-
-  addToCart(id) {
-
-    list.goods.forEach(good => {
-      if (good.id_product == id) {
-        this.cartList.push(good)
-        document.querySelector('.cart-button').innerHTML = `В корзине: ${cart.goodsCount()}`;
+  methods: {
+    async getProducts() {
+      const response = await fetch(`${API_URL}/catalogData.json`);
+      if (response.ok) {
+        const catalogItems = await response.json();
+        catalogItems[0].picture = "/webshop/img/laptop.png";
+        catalogItems[1].picture = "/webshop/img/mouse.png";
+        this.goods = catalogItems;
+        this.filteredGoods = catalogItems;
+      } else {
+        alert("Ошибка при соединении с сервером");
       }
-    })
-    this.render()
-  }
+    }
+  },
 
-  removeFromCart(id) {}
+  async mounted() {
+    await this.getProducts()
+  },
 
-  render() {
-
-    let cartList = document.getElementById('cart-list');
-    cartList.innerHTML = '';
-    this.cartList.forEach(item => {
-      cartList.innerHTML += `<div class="cart-item"><p>${item.product_name}</p><button onclick="cart.removeFromCart(${item.id_product})" class="cart-item-remove">X</button></div>`
-    })
-  }
-
-  goodsCount() {
-    return this.cartList.length
-  }
-}
-
-const cart = new Cart(); // почему если занести это в init, то этих классов не видно?
-const list = new GoodsList();
-
-const init = async () => {
-  await list.fetchGoods();
-  list.render();
-  list.countSum();
-}
-
-window.onload = init
+  computed: {}
+});
