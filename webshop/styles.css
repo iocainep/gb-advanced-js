@@ -28,10 +28,8 @@ header {
     border: 0.5px inset #b4baff;
     border-radius: 8px;
     display: flex;
-    flex-direction: row;
     flex-wrap: wrap;
-    justify-content: space-around;
-    width: 900px;
+    width: 960px;
     margin: 15px auto;
 }
 
@@ -46,7 +44,7 @@ header {
     background-color: #e9e9e7;
 }
 
-.price{
+.price {
     color: red;
 }
 
@@ -61,32 +59,52 @@ header {
 
 .goods-item img {
     height: 150px;
-    width: 150px;
+    object-fit: cover;
 }
 
 .add-to-cart {
     margin: 0 0 15px 0;
 }
 
-.cart-content {
-    display: flex;
-    align-items: center;
-}
-
-.cart-content p {
+.basket-content p {
     margin: 15px;
 }
 
-.cart-item {
+.basket-item {
     margin: 5px;
+    padding: 5px;
     border: 0.1px solid #b4baff;
-    display: flex;
+    border-radius: 8px;
+    width: 150px;
+    text-align: center;
 }
 
-.cart-items {
-    display: flex;
+.basket-item img {
+    height: 90px;
 }
 
-.cart-item-remove {
-    height: 20px;
+.basket-list {
+    display: flex;
+    flex-wrap: wrap;
 }
+
+.search-wrapper {
+    display: flex;
+    width: 200px;
+    padding: 10px;
+    margin: auto;
+}
+
+.search-wrapper input {
+    padding: 4px 12px;
+    color: rgba(0, 0, 0, .70);
+    border: 1px solid rgba(0, 0, 0, .12);
+    transition: .15s all ease-in-out;
+    background: white;
+}
+
+.search-wrapper input:focus {
+    outline: none;
+    transform: scale(1.05);
+}
+

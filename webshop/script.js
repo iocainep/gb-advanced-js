@@ -1,99 +1,216 @@
-const API_URL =
-  "https://raw.githubusercontent.com/GeekBrainsTutorial/online-store-api/master/responses";
+const API_URL = "http://localhost:3000";
+const TODAY = new Date();
 
-class GoodsItem {
-  constructor(title, price, id) {
-    this.title = title;
-    this.price = price;
-    this.id = id;
-  }
-  render() {
-    return `<div class="goods-item" itemId=${this.id}><h3>${this.title}</h3><p>${this.price}</p><button onclick="cart.addToCart(${this.id})" class="add-to-cart" id="${this.id}">Добавить в корзину</button></div>`;
-  }
-}
+Vue.component('goods-list', {
+  props: ['goods'],
+  template: `
+      <div class="goods-list">
+        <goods-item v-for="goodEntity in goods" :goodProp="goodEntity"></goods-item>
+      </div>
+    `
+});
 
-class GoodsList {
-  constructor() {
-    this.goods = [];
-  }
-
-  async fetchGoods() {
-    const responce = await fetch(`${API_URL}/catalogData.json`);
-    if (responce.ok) {
-      const catalogItems = await responce.json();
-      this.goods = catalogItems;
-    } else {
-      alert("Ошибка при соединении с сервером");
+Vue.component('goods-item', {
+  props: ['goodProp'],
+  methods: {
+    async addToCart() {
+      const addedProduct = JSON.stringify(this.goodProp);
+      app.basketItemsFront.push(this.goodProp);
+      app.writeLog(this.goodProp.id_product, "addtocart");
+      const body = {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json;charset=utf-8'
+        },
+        body: addedProduct
+      };
+      const response = await fetch(`${API_URL}/addToCart`, body);
+      app.basketSum += this.goodProp.price;
     }
+  },
+  template: `
+    <div 
+      class="goods-item" 
+      :id="goodProp.id_product">
+      <h3 class="goods-item-name">
+          {{goodProp.product_name}}
+      </h3>
+      <img :src="goodProp.picture">
+      <p class="goods-item-price">
+        {{goodProp.price}}
+      </p>
+      <button
+        type="button"
+        @click = "addToCart()"
+        class="add-to-cart"
+        :id="goodProp.id_product"
+        >
+        Добавить в корзину
+      </button>
+    </div>
+  `,
+});
+
+Vue.component('search', {
+  data: function () {
+    return {
+      searchLine: ''
+    }
+  },
+
+  template: `
+      <div class="search-wrapper">
+        <input 
+          @keydown.enter="searchGoods" 
+          type="text" 
+          v-model="searchLine" 
+          placeholder="Введите строку поиска"/>
+        <button 
+          class="search-button"
+          type="button"
+          @click="searchGoods">
+          Искать
+        </button>
+      </div>
+    `,
+
+  methods: {
+    searchGoods() {
+      const regExp = new RegExp(this.searchLine, 'i')
+      app.filteredGoods = app.goods.filter(good => regExp.test(good.product_name))
+    },
+  },
+});
+
+Vue.component('basket-list', {
+  props: ['basketItems'],
+  template: `
+      <div class="basket-list">
+        <basket-item 
+        v-bind:key="index"
+        v-bind:basket-item-id="item.id_product"
+        v-for="(item,index) in basketItems"
+        :item="item"
+        :index="index">
+        </basket-item>
+      </div>
+    `,
+});
+
+Vue.component('basket-item', {
+  props: ['item', 'index'],
+  template: `
+      <div class="basket-item">
+        <h3 
+          class="basket-item__title">
+        {{item.product_name}}
+        </h3>
+        <img 
+          :src="item.picture">
+        <p 
+          class="basket-item__price">
+        {{item.price}}
+        </p>
+        <button 
+          @click="removeFromCart(index)" 
+          class="remove-from-cart">
+          Удалить из корзины
+        </button>
+      </div>
+  `,
+
+  methods: {
+    async removeFromCart(index) {
+      app.basketSum -= app.basketItemsFront[index].price;
+      app.basketItemsFront.splice(index, 1);
+      app.writeLog(this.item.id_product, "removefromcart");
+      const data = JSON.stringify({
+        index: index
+      });
+      const body = {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json;charset=utf-8'
+        },
+        body: data
+      };
+      const response = await fetch(`${API_URL}/removeFromCart`, body);
+    },
+
   }
+});
 
-  render() {
-    let listHtml = "";
-    this.goods.forEach((good) => {
-      const goodItem = new GoodsItem(
-        good.product_name,
-        good.price,
-        good.id_product
-      );
-      listHtml += goodItem.render();
-    });
-    document.querySelector(".goods-list").innerHTML = listHtml;
-  }
 
-  countSum() {
-    let sum = 0;
+const app = new Vue({
+  el: "#app",
+  data: {
+    goods: [],
+    filteredGoods: [],
+    basketItems: [],
+    basketItemsFront: [],
+    basketSum: 0,
+    searchLine: ''
+  },
 
-    this.goods.forEach(good => {
-      sum += good.price;
-    });
-
-    // let span = document.createElement('span');
-    // span.innerHTML = `Сумма: ${sum} руб.`;
-    // document.querySelector('main').appendChild(span);
-
-    return sum;
-  }
-}
-
-class Cart {
-  constructor() {
-    this.cartList = [];
-  }
-
-  addToCart(id) {
-
-    list.goods.forEach(good => {
-      if (good.id_product == id) {
-        this.cartList.push(good)
-        document.querySelector('.cart-button').innerHTML = `В корзине: ${cart.goodsCount()}`;
+  methods: {
+    async getProducts() {
+      const response = await fetch(`${API_URL}/catalogData`);
+      if (response.ok) {
+        const catalogItems = await response.json();
+        this.goods = catalogItems;
+        this.filteredGoods = catalogItems;
+      } else {
+        alert("Ошибка при соединении с сервером");
       }
-    })
-    this.render()
+    },
+
+    async showCart() {
+      const response = await fetch(`${API_URL}/cartData`);
+      if (response.ok) {
+        const cartData = await response.json();
+        this.basketItems = cartData;
+        this.basketItemsFront = cartData;
+      } else {
+        alert("Ошибка при соединении с сервером");
+      }
+      this.basketItems.forEach(item => {
+        this.basketSum += item.price;
+      })
+    },
+
+    async writeLog(id, action) {
+      const logData = {
+        "action": action,
+        "id": id,
+        "time": TODAY
+      };
+
+      const body = {
+        method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Content-Type': 'application/json;charset=utf-8'
+        },
+        body: JSON.stringify(logData)
+      };
+      const response = await fetch(`${API_URL}/writeLog`, body);
+    },
+
+    async getCartSum() {
+      this.basketItems.forEach(item => {
+        app.basketSum += item.price;
+      })
+    }
+  },
+
+  async mounted() {
+    await this.getProducts()
+  },
+
+  beforeMount() {
+    this.showCart(),
+      this.getCartSum()
   }
-
-  removeFromCart(id) {}
-
-  render() {
-
-    let cartList = document.getElementById('cart-list');
-    cartList.innerHTML = '';
-    this.cartList.forEach(item => {
-      cartList.innerHTML += `<div class="cart-item"><p>${item.product_name}</p><button onclick="cart.removeFromCart(${item.id_product})" class="cart-item-remove">X</button></div>`
-    })
-  }
-
-  goodsCount() {
-    return this.cartList.length
-  }
-}
-
-const cart = new Cart(); // почему если занести это в init, то этих классов не видно?
-const list = new GoodsList();
-
-const init = async () => {
-  await list.fetchGoods();
-  list.render();
-  list.countSum();
-}
-
-window.onload = init
+});
