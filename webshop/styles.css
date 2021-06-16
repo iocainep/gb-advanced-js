@@ -25,10 +25,14 @@ header {
 }
 
 .goods-list {
-    border: 2px solid black;
+    border: 0.5px inset #b4baff;
+    border-radius: 8px;
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
+    justify-content: space-around;
+    width: 900px;
+    margin: 15px auto;
 }
 
 .goods-item {
@@ -58,4 +62,31 @@ header {
 .goods-item img {
     height: 150px;
     width: 150px;
+}
+
+.add-to-cart {
+    margin: 0 0 15px 0;
+}
+
+.cart-content {
+    display: flex;
+    align-items: center;
+}
+
+.cart-content p {
+    margin: 15px;
+}
+
+.cart-item {
+    margin: 5px;
+    border: 0.1px solid #b4baff;
+    display: flex;
+}
+
+.cart-items {
+    display: flex;
+}
+
+.cart-item-remove {
+    height: 20px;
 }
