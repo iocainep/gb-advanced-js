@@ -18,7 +18,7 @@
       <goods-list :goods="filteredGoods"></goods-list>
       <div class="cart">
         <div class="cart-content" v-if="basketItems.length > 0">
-          <basket-list :basket-items="basketItemsFront"></basket-list>
+          <basket-list :basket-items="fetchBasket"></basket-list>
           <div class="basket-sum">Сумма: {{basketSum}}</div>
         </div>
       </div>
@@ -26,5 +26,5 @@
   </div>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
-<script src="script.js"></script>
+<script type="module" src="./dist/build.js"></script>
 </html>
